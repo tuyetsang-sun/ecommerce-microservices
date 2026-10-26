@@ -1,0 +1,16 @@
+{
+    "name": "ecommerce-microservices",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Prompt 3 - E-commerce Microservices MVP",
+    "scripts": {
+        "check:proto": "node scripts/check-proto.cjs"
+    },
+    "engines": {
+        "node": ">=24 <25"
+    },
+    "devDependencies": {
+        "@grpc/grpc-js": "1.14.6",
+        "@grpc/proto-loader": "0.8.1"
+    }
+}

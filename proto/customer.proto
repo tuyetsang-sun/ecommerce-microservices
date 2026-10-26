@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package ecommerce.customer;
+
+import "common.proto";
+
+service CustomerService {
+  rpc EnsureCustomer (EnsureCustomerRequest) returns (CustomerResponse);
+  rpc GetCustomer (CustomerIdRequest) returns (CustomerResponse);
+  rpc UpdateCustomer (UpdateCustomerRequest) returns (CustomerResponse);
+  rpc GetMembership (CustomerIdRequest) returns (MembershipResponse);
+  rpc ListMemberships (ecommerce.common.Empty) returns (MembershipListResponse);
+  rpc CreateMembership (CreateMembershipRequest) returns (MembershipResponse);
+  rpc UpdateMembership (UpdateMembershipRequest) returns (MembershipResponse);
+}
+
+message CustomerIdRequest {
+  int32 uid = 1;
+}
+
+message EnsureCustomerRequest {
+  int32 uid = 1;
+  string fullname = 2;
+}
+
+message CustomerResponse {
+  int32 uid = 1;
+  string fullname = 2;
+  int32 mid = 3;
+}
+
+message UpdateCustomerRequest {
+  int32 uid = 1;
+  optional string fullname = 2;
+  optional int32 mid = 3;
+}
+
+message MembershipResponse {
+  int32 mid = 1;
+  string mname = 2;
+  int32 score = 3;
+}
+
+message MembershipListResponse {
+  repeated MembershipResponse items = 1;
+}
+
+message CreateMembershipRequest {
+  string mname = 1;
+  int32 score = 2;
+}
+
+message UpdateMembershipRequest {
+  int32 mid = 1;
+  optional string mname = 2;
+  optional int32 score = 3;
+}
