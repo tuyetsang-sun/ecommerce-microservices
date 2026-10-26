@@ -1,0 +1,28 @@
+cat > .gitignore <<'EOF'
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Logs
+logs/
+*.log
+
+# Build and test output
+dist/
+build/
+coverage/
+
+# Local database files
+data/
+
+# Editor and operating system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+EOF
