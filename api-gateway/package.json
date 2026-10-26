@@ -1,0 +1,18 @@
+{
+    "name": "api-gateway",
+    "version": "1.0.0",
+    "private": true,
+    "type": "commonjs",
+    "scripts": {
+        "start": "node src/server.js",
+        "health": "node scripts/healthcheck.cjs"
+    },
+    "engines": {
+        "node": ">=24 <25"
+    },
+    "dependencies": {
+        "@grpc/grpc-js": "1.14.6",
+        "@grpc/proto-loader": "0.8.1",
+        "express": "5.3.0"
+    }
+}
