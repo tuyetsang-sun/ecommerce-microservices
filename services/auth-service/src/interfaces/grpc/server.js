@@ -7,7 +7,12 @@ const port = process.env.GRPC_PORT || "50051";
 server.addService(ecommerce.common.HealthService.service, {
     async check(call, callback) {
         try {
-            await pool.query("SELECT 1");
+            await pool.query(`
+                SELECT u.uid, r.rolename
+                FROM public.users AS u
+                JOIN public.roles AS r ON r.roleid = u.roleid
+                LIMIT 0
+            `);
 
             callback(null, {
                 service: "auth-service",

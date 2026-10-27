@@ -12,9 +12,10 @@ RUN npm ci --omit=dev
 COPY proto /app/proto
 COPY services/auth-service/src ./src
 COPY services/auth-service/scripts ./scripts
+COPY services/auth-service/migrations ./migrations
 
 USER node
 
 EXPOSE 50051
 
-CMD ["node", "src/interfaces/grpc/server.js"]
+CMD ["sh", "-c", "node scripts/migrate.cjs && exec node src/interfaces/grpc/server.js"]
