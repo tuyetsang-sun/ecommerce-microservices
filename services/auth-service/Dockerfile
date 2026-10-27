@@ -13,6 +13,7 @@ COPY proto /app/proto
 COPY services/auth-service/src ./src
 COPY services/auth-service/scripts ./scripts
 COPY services/auth-service/migrations ./migrations
+COPY services/auth-service/tests ./tests
 
 USER node
 
