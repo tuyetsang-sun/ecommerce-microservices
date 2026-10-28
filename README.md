@@ -18,3 +18,15 @@ docker compose up -d --wait --wait-timeout 240
 Kiểm tra container:
 
 docker compose ps -a
+### Current authenticated identity
+
+GET /api/auth/me
+
+Required header: Authorization: Bearer <accessToken>
+
+- 200: returns uid, username and role.
+- 401: missing, invalid or expired token.
+- 503/504: authentication service unavailable or timed out.
+
+The gateway validates access through AuthService.VerifyToken.
+Role-based permissions use the requireRoles middleware.

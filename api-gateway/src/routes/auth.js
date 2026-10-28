@@ -8,6 +8,9 @@ const parseJson = express.json({
     limit: "16kb",
     strict: true
 });
+const {
+    createAuthenticate
+} = require("../middlewares/auth");
 
 function requireJson(req, res, next) {
     res.set("Cache-Control", "no-store");
@@ -114,5 +117,17 @@ authRouter.post(
         });
     }
 );
+const authenticate = createAuthenticate(accessToken =>
+    callAuth("verifyToken", {
+        access_token: accessToken
+    })
+);
+authRouter.get("/me", authenticate, (req, res) => {
+    res.json({
+        uid: req.auth.uid,
+        username: req.auth.username,
+        role: req.auth.role
+    });
+});
 
 module.exports = { authRouter };

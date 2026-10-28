@@ -12,7 +12,7 @@ RUN npm ci --omit=dev
 COPY proto /app/proto
 COPY api-gateway/src ./src
 COPY api-gateway/scripts ./scripts
-
+COPY api-gateway/tests ./tests
 USER node
 
 EXPOSE 3000
