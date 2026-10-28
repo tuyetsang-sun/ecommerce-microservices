@@ -1,3 +1,7 @@
+const { authRouter } = require("./routes/auth");
+const { errorHandler } = require("./middlewares/error-handler");
+const { closeAuthClient } = require("./clients/auth");
+
 const express = require("express");
 const { requestLogger } = require("./middlewares/request-logger");
 const healthRoutes = require("./routes/health");
@@ -11,6 +15,7 @@ app.disable("etag");
 
 app.use(requestLogger);
 app.use(healthRoutes);
+app.use("/api/auth", authRouter);
 
 app.use((req, res) => {
     res.status(404).json({
@@ -19,22 +24,7 @@ app.use((req, res) => {
     });
 });
 
-app.use((error, req, res, next) => {
-    if (res.headersSent) {
-        return next(error);
-    }
-
-    console.error(JSON.stringify({
-        event: "http_error",
-        requestId: req.requestId,
-        code: error.code || "UNKNOWN"
-    }));
-
-    res.status(500).json({
-        message: "Internal server error",
-        requestId: req.requestId
-    });
-});
+app.use(errorHandler);
 
 const server = app.listen(port, "0.0.0.0", () => {
     console.log("[api-gateway] HTTP listening on port " + port);
@@ -54,6 +44,7 @@ function shutdown() {
     const timer = setTimeout(() => {
         server.closeAllConnections();
         closeAuthHealthClient();
+        closeAuthClient();
         process.exit(1);
     }, 8000);
 

@@ -155,6 +155,7 @@ services:
       PGDATABASE: ${AUTH_DB_NAME:?Missing AUTH_DB_NAME}
       PGUSER: ${AUTH_DB_USER:?Missing AUTH_DB_USER}
       PGPASSWORD: ${AUTH_DB_PASSWORD:?Missing AUTH_DB_PASSWORD}
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:?Missing AUTH_JWT_SECRET}
     depends_on:
       auth-db:
         condition: service_healthy
