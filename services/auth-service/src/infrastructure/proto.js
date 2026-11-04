@@ -8,7 +8,8 @@ const protoDirectory =
 const definition = protoLoader.loadSync(
     [
         path.join(protoDirectory, "common.proto"),
-        path.join(protoDirectory, "auth.proto")
+        path.join(protoDirectory, "auth.proto"),
+        path.join(protoDirectory, "customer.proto")
     ], {
         includeDirs: [protoDirectory],
         keepCase: true,

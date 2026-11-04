@@ -221,6 +221,38 @@ services:
       timeout: 8s
       retries: 5
       start_period: 20s
+  auth-provisioner:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+
+    restart: unless-stopped
+
+    command:
+      - node
+      - src/interfaces/workers/customer-provisioner.js
+
+    environment:
+      NODE_ENV: production
+      PGHOST: auth-db
+      PGPORT: "5432"
+      PGDATABASE: ${AUTH_DB_NAME:?Missing AUTH_DB_NAME}
+      PGUSER: ${AUTH_DB_USER:?Missing AUTH_DB_USER}
+      PGPASSWORD: ${AUTH_DB_PASSWORD:?Missing AUTH_DB_PASSWORD}
+      AUTH_GRPC_ADDRESS: auth-service:50051
+      CUSTOMER_GRPC_ADDRESS: customer-service:50052
+      CUSTOMER_PROVISIONING_SECRET: ${CUSTOMER_PROVISIONING_SECRET:?Missing CUSTOMER_PROVISIONING_SECRET}
+
+    depends_on:
+      auth-service:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "node", "scripts/check-provisioner-health.cjs"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 volumes:
   auth_data:
