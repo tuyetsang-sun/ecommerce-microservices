@@ -2,11 +2,14 @@ const path = require("node:path");
 const grpc = require("@grpc/grpc-js");
 const protoLoader = require("@grpc/proto-loader");
 
-const protoDir = process.env.PROTO_DIR ||
+const protoDir =
+    process.env.PROTO_DIR ||
     path.resolve(__dirname, "../../../../proto");
 
 const definition = protoLoader.loadSync(
-    path.join(protoDir, "common.proto"), {
+    ["common.proto", "auth.proto", "customer.proto"].map(
+        name => path.join(protoDir, name)
+    ), {
         keepCase: true,
         longs: String,
         enums: String,

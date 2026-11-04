@@ -10,7 +10,7 @@
         "start": "node src/interfaces/grpc/server.js",
         "migrate": "node scripts/migrate.cjs",
         "health": "node scripts/healthcheck.cjs",
-        "test": "node --test tests/customer-use-cases.test.cjs"
+        "test": "node --test tests/customer-use-cases.test.cjs tests/customer-grpc.test.cjs"
     },
     "dependencies": {
         "@grpc/grpc-js": "1.14.7",

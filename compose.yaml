@@ -206,9 +206,13 @@ services:
       PGDATABASE: ${CUSTOMER_DB_NAME:?Missing CUSTOMER_DB_NAME}
       PGUSER: ${CUSTOMER_DB_USER:?Missing CUSTOMER_DB_USER}
       PGPASSWORD: ${CUSTOMER_DB_PASSWORD:?Missing CUSTOMER_DB_PASSWORD}
+      AUTH_GRPC_ADDRESS: auth-service:50051
+      CUSTOMER_PROVISIONING_SECRET: ${CUSTOMER_PROVISIONING_SECRET:?Missing CUSTOMER_PROVISIONING_SECRET}
 
     depends_on:
       customer-db:
+        condition: service_healthy
+      auth-service:
         condition: service_healthy
 
     healthcheck:
