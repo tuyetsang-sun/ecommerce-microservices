@@ -12,6 +12,7 @@ COPY proto /app/proto
 COPY services/customer-service/src ./src
 COPY services/customer-service/scripts ./scripts
 COPY services/customer-service/migrations ./migrations
+COPY services/customer-service/tests ./tests
 
 USER node
 

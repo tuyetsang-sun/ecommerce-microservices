@@ -68,3 +68,22 @@ Its internal gRPC health check verifies database connectivity and schema.
 
 Verification:
 docker compose exec -T customer-service node scripts/healthcheck.cjs
+### Customer and membership business rules
+
+- Normal users can read their own profile and membership.
+- Normal users can update their own fullname.
+- Only administrators can change a customer's membership.
+- Authenticated users can list memberships.
+- Only administrators can create or update memberships.
+- Scores must be nonnegative integers.
+- Fullname is limited to 100 characters.
+- Membership name is limited to 50 characters.
+- Internal provisioning accepts uid and fullname only.
+
+Use cases receive an authenticated actor from the transport layer.
+The actor must never come from client request JSON.
+
+Business rules are tested using in-memory repositories.
+
+Run:
+npm --prefix services/customer-service test
