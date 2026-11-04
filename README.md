@@ -47,3 +47,24 @@ The local setup uses trust proxy = false.
 
 Verification:
 docker compose exec -T api-gateway node scripts/check-rate-limit.cjs
+### Customer Service foundation
+
+Customer Service uses its own PostgreSQL database.
+
+Tables:
+- memberships: mid, mname, score.
+- customers: uid, fullname, mid, created_at.
+
+Rules:
+- Customer uid comes from Auth Service and is not generated locally.
+- There is no cross-service database foreign key.
+- Customer mid references memberships in the same database.
+- Default membership: normal, score 10.
+- Membership score must be nonnegative.
+- Membership names are unique without case sensitivity.
+
+The service applies checksum-verified migrations before starting.
+Its internal gRPC health check verifies database connectivity and schema.
+
+Verification:
+docker compose exec -T customer-service node scripts/healthcheck.cjs

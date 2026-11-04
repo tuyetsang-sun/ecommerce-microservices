@@ -191,6 +191,32 @@ services:
       timeout: 10s
       retries: 5
       start_period: 20s
+  customer-service:
+    build:
+      context: .
+      dockerfile: services/customer-service/Dockerfile
+
+    restart: unless-stopped
+
+    environment:
+      NODE_ENV: production
+      GRPC_PORT: "50052"
+      PGHOST: customer-db
+      PGPORT: "5432"
+      PGDATABASE: ${CUSTOMER_DB_NAME:?Missing CUSTOMER_DB_NAME}
+      PGUSER: ${CUSTOMER_DB_USER:?Missing CUSTOMER_DB_USER}
+      PGPASSWORD: ${CUSTOMER_DB_PASSWORD:?Missing CUSTOMER_DB_PASSWORD}
+
+    depends_on:
+      customer-db:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "node", "scripts/healthcheck.cjs"]
+      interval: 10s
+      timeout: 8s
+      retries: 5
+      start_period: 20s
 
 volumes:
   auth_data:
