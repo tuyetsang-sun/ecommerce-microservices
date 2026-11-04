@@ -1,9 +1,10 @@
 const express = require("express");
 const { checkAuthHealth } = require("../clients/auth-health");
+const { checkRedisHealth } = require("../clients/redis");
 
-const router = express.Router();
+const healthRouter = express.Router();
 
-router.get("/health/live", (req, res) => {
+healthRouter.get("/health/live", (req, res) => {
     res.set("Cache-Control", "no-store");
     res.json({
         service: "api-gateway",
@@ -11,35 +12,40 @@ router.get("/health/live", (req, res) => {
     });
 });
 
-router.get("/health", async(req, res) => {
+healthRouter.get("/health", async(req, res) => {
     res.set("Cache-Control", "no-store");
 
-    try {
-        await checkAuthHealth();
+    const results = await Promise.allSettled([
+        checkAuthHealth(),
+        checkRedisHealth()
+    ]);
 
-        res.status(200).json({
-            service: "api-gateway",
-            status: "UP",
-            dependencies: {
-                "auth-service": "UP"
-            }
-        });
-    } catch (error) {
-        console.error(JSON.stringify({
-            event: "dependency_health_failed",
-            requestId: req.requestId,
-            dependency: "auth-service",
-            code: error.code || "UNKNOWN"
-        }));
+    const names = ["auth-service", "redis"];
+    const dependencies = {};
 
-        res.status(503).json({
-            service: "api-gateway",
-            status: "DEGRADED",
-            dependencies: {
-                "auth-service": "DOWN"
-            }
-        });
-    }
+    results.forEach((result, index) => {
+        dependencies[names[index]] =
+            result.status === "fulfilled" ? "UP" : "DOWN";
+
+        if (result.status === "rejected") {
+            console.error(JSON.stringify({
+                event: "dependency_health_failed",
+                requestId: req.requestId,
+                dependency: names[index],
+                code: (result.reason && result.reason.code) || "UNAVAILABLE"
+            }));
+        }
+    });
+
+    const healthy = results.every(
+        result => result.status === "fulfilled"
+    );
+
+    res.status(healthy ? 200 : 503).json({
+        service: "api-gateway",
+        status: healthy ? "UP" : "DEGRADED",
+        dependencies
+    });
 });
 
-module.exports = router;
+module.exports = { healthRouter };

@@ -176,8 +176,14 @@ services:
       NODE_ENV: production
       PORT: "3000"
       AUTH_GRPC_ADDRESS: auth-service:50051
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Missing REDIS_PASSWORD}
+
     depends_on:
       auth-service:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "node", "scripts/healthcheck.cjs"]

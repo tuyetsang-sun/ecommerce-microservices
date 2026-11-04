@@ -1,9 +1,22 @@
 const express = require("express");
 const { callAuth } = require("../clients/auth");
 const { HttpError } = require("../middlewares/error-handler");
-
+const { executeRedis } = require("../clients/redis");
+const { createRateLimit } = require("../middlewares/rate-limit");
 const authRouter = express.Router();
+const registerRateLimit = createRateLimit({
+    executeRedis,
+    scope: "auth:register",
+    limit: 20,
+    windowMs: 60000
+});
 
+const loginRateLimit = createRateLimit({
+    executeRedis,
+    scope: "auth:login",
+    limit: 30,
+    windowMs: 60000
+});
 const parseJson = express.json({
     limit: "16kb",
     strict: true
@@ -82,10 +95,8 @@ function input(body, optionalFields = []) {
     return result;
 }
 
-authRouter.post(
-    "/register",
-    requireJson,
-    parseJson,
+authRouter.post("/register", registerRateLimit,
+    requireJson, parseJson,
     async(req, res) => {
         const request = input(
             req.body, ["fullname", "email", "phone"]
@@ -100,10 +111,8 @@ authRouter.post(
     }
 );
 
-authRouter.post(
-    "/login",
-    requireJson,
-    parseJson,
+authRouter.post("/login", loginRateLimit,
+    requireJson, parseJson,
     async(req, res) => {
         const result = await callAuth(
             "login",

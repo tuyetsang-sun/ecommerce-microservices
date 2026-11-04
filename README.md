@@ -30,3 +30,20 @@ Required header: Authorization: Bearer <accessToken>
 
 The gateway validates access through AuthService.VerifyToken.
 Role-based permissions use the requireRoles middleware.
+### Redis rate limiting
+
+The Gateway uses Redis counters for authentication endpoints:
+
+- POST /api/auth/register: 20 requests per IP per 60 seconds.
+- POST /api/auth/login: 30 requests per IP per 60 seconds.
+- Both successful and failed requests count toward the limit.
+- Exceeding the limit returns HTTP 429 with Retry-After.
+- Redis failure returns HTTP 503 for these endpoints.
+- GET /health checks Auth Service and Redis.
+- GET /health/live checks Gateway liveness.
+
+Counters use an atomic Lua script and expire automatically.
+The local setup uses trust proxy = false.
+
+Verification:
+docker compose exec -T api-gateway node scripts/check-rate-limit.cjs

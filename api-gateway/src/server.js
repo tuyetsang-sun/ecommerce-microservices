@@ -4,17 +4,19 @@ const { closeAuthClient } = require("./clients/auth");
 
 const express = require("express");
 const { requestLogger } = require("./middlewares/request-logger");
-const healthRoutes = require("./routes/health");
+const { healthRouter } = require("./routes/health");
 const { closeAuthHealthClient } = require("./clients/auth-health");
-
+const { connectRedis, closeRedis } = require("./clients/redis");
 const app = express();
+app.set("trust proxy", false);
 const port = Number(process.env.PORT || 3000);
 
 app.disable("x-powered-by");
 app.disable("etag");
 
 app.use(requestLogger);
-app.use(healthRoutes);
+
+app.use(healthRouter);
 app.use("/api/auth", authRouter);
 
 app.use((req, res) => {
@@ -25,7 +27,11 @@ app.use((req, res) => {
 });
 
 app.use(errorHandler);
-
+connectRedis().catch(() => {
+    console.error(JSON.stringify({
+        event: "redis_connection_failed"
+    }));
+});
 const server = app.listen(port, "0.0.0.0", () => {
     console.log("[api-gateway] HTTP listening on port " + port);
 });
@@ -45,6 +51,7 @@ function shutdown() {
         server.closeAllConnections();
         closeAuthHealthClient();
         closeAuthClient();
+        closeRedis();
         process.exit(1);
     }, 8000);
 

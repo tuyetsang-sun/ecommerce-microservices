@@ -1,29 +1,30 @@
 async function main() {
-    const port = process.env.PORT || "3000";
+    const port = process.env.PORT || 3000;
 
-    const response = await fetch("http://127.0.0.1:" + port + "/health", {
-        signal: AbortSignal.timeout(7000)
+    const response = await fetch(`http://127.0.0.1:${port}/health`, {
+        signal: AbortSignal.timeout(8000)
     });
 
-    if (!response.ok) {
-        throw new Error("HTTP " + response.status);
-    }
-
     const body = await response.json();
+    const dependencies = body && body.dependencies;
 
-    if (
+    if (!response.ok ||
+        !body ||
         body.service !== "api-gateway" ||
         body.status !== "UP" ||
-        !body.dependencies ||
-        body.dependencies["auth-service"] !== "UP"
+        !dependencies ||
+        dependencies["auth-service"] !== "UP" ||
+        dependencies.redis !== "UP"
     ) {
-        throw new Error("Unexpected health response");
+        throw new Error("Gateway dependencies are not healthy");
     }
 
-    console.log("HEALTH CHECK PASSED: gateway -> auth-service -> auth-db");
+    console.log(
+        "HEALTH CHECK PASSED: api-gateway, auth-service and redis UP"
+    );
 }
 
-main().catch((error) => {
-    console.error("HEALTH CHECK FAILED:", error.message);
+main().catch(() => {
+    console.error("HEALTH CHECK FAILED: api-gateway");
     process.exitCode = 1;
 });
