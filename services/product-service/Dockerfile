@@ -16,4 +16,4 @@ USER node
 
 EXPOSE 50053
 
-CMD ["node", "src/interfaces/grpc/server.js"]
+CMD ["sh", "-c", "node scripts/init-db.cjs && exec node src/interfaces/grpc/server.js"]
