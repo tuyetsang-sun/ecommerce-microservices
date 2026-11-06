@@ -20,6 +20,13 @@ server.addService(ecommerce.common.HealthService.service, {
         }
 
         try {
+            await pool.query(`
+                SELECT o.oid, d.pid, e.event_id
+                FROM public.orders o
+                LEFT JOIN public.order_details d ON d.oid = o.oid
+                LEFT JOIN public.order_outbox e ON e.oid = o.oid
+                LIMIT 0
+            `);
             const result = await pool.query("SELECT 1 AS ok");
 
             if (!result.rows[0] || result.rows[0].ok !== 1) {
