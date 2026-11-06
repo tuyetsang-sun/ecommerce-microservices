@@ -276,9 +276,12 @@ services:
       MONGO_USERNAME: ${PRODUCT_DB_USER:?Missing PRODUCT_DB_USER}
       MONGO_PASSWORD: ${PRODUCT_DB_PASSWORD:?Missing PRODUCT_DB_PASSWORD}
       MONGO_AUTH_SOURCE: admin
+      AUTH_GRPC_ADDRESS: auth-service:50051
 
     depends_on:
       product-db:
+        condition: service_healthy
+      auth-service:
         condition: service_healthy
 
     healthcheck:

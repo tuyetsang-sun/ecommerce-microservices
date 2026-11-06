@@ -1,6 +1,9 @@
 const { client, db } = require("../../infrastructure/db");
 const { grpc, ecommerce } = require("../../infrastructure/proto");
-
+const { createAuthClient } = require("../../infrastructure/auth-client");
+const { createProductRepository } = require("../../infrastructure/product-repository");
+const { createProductUseCases } = require("../../application/product-use-cases");
+const { createProductHandlers } = require("./product-handlers");
 const port = Number(process.env.GRPC_PORT || 50053);
 
 if (!Number.isInteger(port) || port < 1 || port > 65535) {
@@ -9,7 +12,21 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) {
 
 const server = new grpc.Server();
 let stopping = false;
+const authClient = createAuthClient(
+    process.env.AUTH_GRPC_ADDRESS || "auth-service:50051"
+);
 
+const app = createProductUseCases({
+    products: createProductRepository(db)
+});
+
+server.addService(
+    ecommerce.product.ProductService.service,
+    createProductHandlers({
+        app,
+        verifyToken: authClient.verifyToken
+    })
+);
 server.addService(ecommerce.common.HealthService.service, {
     check: async(call, callback) => {
         if (stopping) {
@@ -54,6 +71,7 @@ function shutdown(exitCode = 0) {
     }, 8000);
 
     server.tryShutdown(() => {
+        authClient.close();
         client.close()
             .then(() => {
                 clearTimeout(timer);
