@@ -5,7 +5,8 @@
     "type": "commonjs",
     "scripts": {
         "start": "node src/interfaces/grpc/server.js",
-        "health": "node scripts/healthcheck.cjs"
+        "health": "node scripts/healthcheck.cjs",
+        "test": "node --test tests/product-use-cases.test.cjs"
     },
     "engines": {
         "node": ">=24 <25"

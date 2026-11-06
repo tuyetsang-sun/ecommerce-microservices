@@ -11,7 +11,7 @@ RUN npm ci --omit=dev
 COPY proto /app/proto
 COPY services/product-service/src ./src
 COPY services/product-service/scripts ./scripts
-
+COPY services/product-service/tests ./tests
 USER node
 
 EXPOSE 50053
