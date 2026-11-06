@@ -1,5 +1,10 @@
 const express = require("express");
+const { createProductRouter } = require("./routes/products");
 
+const {
+    callProduct,
+    closeProductClients
+} = require("./clients/product");
 const { authRouter } = require("./routes/auth");
 const { healthRouter } = require("./routes/health");
 const { createCustomerRouter } = require("./routes/customers");
@@ -62,6 +67,16 @@ app.use(
         callCustomer
     })
 );
+app.use(
+    "/api/products",
+    createProductRouter({
+        verifyToken: accessToken =>
+            callAuth("verifyToken", {
+                access_token: accessToken
+            }),
+        callProduct
+    })
+);
 app.use((req, res) => {
     res.status(404).json({
         message: "Route not found",
@@ -98,6 +113,7 @@ function closeClients() {
     closeAuthHealthClient();
     closeAuthClient();
     closeCustomerClients();
+    closeProductClients();
     closeRedis();
 }
 

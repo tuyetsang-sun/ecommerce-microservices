@@ -1,3 +1,4 @@
+const { checkProductHealth } = require("../clients/product");
 const express = require("express");
 const { checkAuthHealth } = require("../clients/auth-health");
 const { checkRedisHealth } = require("../clients/redis");
@@ -20,10 +21,11 @@ healthRouter.get("/health", async(req, res) => {
     const results = await Promise.allSettled([
         checkAuthHealth(),
         checkRedisHealth(),
-        checkCustomerHealth()
+        checkCustomerHealth(),
+        checkProductHealth()
     ]);
 
-    const names = ["auth-service", "redis", "customer-service"];
+    const names = ["auth-service", "redis", "customer-service", "product-service"];
     const dependencies = {};
 
     results.forEach((result, index) => {

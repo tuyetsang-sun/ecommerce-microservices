@@ -183,6 +183,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       REDIS_PASSWORD: ${REDIS_PASSWORD:?Missing REDIS_PASSWORD}
+      PRODUCT_GRPC_ADDRESS: product-service:50053
 
     depends_on:
       auth-service:
@@ -190,6 +191,8 @@ services:
       redis:
         condition: service_healthy
       customer-service:
+        condition: service_healthy
+      product-service:
         condition: service_healthy
 
     healthcheck:
