@@ -1,23 +1,57 @@
-const { authRouter } = require("./routes/auth");
-const { errorHandler } = require("./middlewares/error-handler");
-const { closeAuthClient } = require("./clients/auth");
-
 const express = require("express");
-const { requestLogger } = require("./middlewares/request-logger");
+
+const { authRouter } = require("./routes/auth");
 const { healthRouter } = require("./routes/health");
-const { closeAuthHealthClient } = require("./clients/auth-health");
-const { connectRedis, closeRedis } = require("./clients/redis");
+const { createCustomerRouter } = require("./routes/customers");
+
+const {
+    errorHandler
+} = require("./middlewares/error-handler");
+
+const {
+    requestLogger
+} = require("./middlewares/request-logger");
+
+const {
+    callAuth,
+    closeAuthClient
+} = require("./clients/auth");
+
+const {
+    closeAuthHealthClient
+} = require("./clients/auth-health");
+
+const {
+    callCustomer,
+    closeCustomerClients
+} = require("./clients/customer");
+
+const {
+    connectRedis,
+    closeRedis
+} = require("./clients/redis");
+
 const app = express();
-app.set("trust proxy", false);
 const port = Number(process.env.PORT || 3000);
 
+app.set("trust proxy", false);
 app.disable("x-powered-by");
 app.disable("etag");
 
 app.use(requestLogger);
-
 app.use(healthRouter);
 app.use("/api/auth", authRouter);
+
+app.use(
+    "/api/customers",
+    createCustomerRouter({
+        verifyToken: accessToken =>
+            callAuth("verifyToken", {
+                access_token: accessToken
+            }),
+        callCustomer
+    })
+);
 
 app.use((req, res) => {
     res.status(404).json({
@@ -27,21 +61,36 @@ app.use((req, res) => {
 });
 
 app.use(errorHandler);
+
 connectRedis().catch(() => {
     console.error(JSON.stringify({
         event: "redis_connection_failed"
     }));
 });
+
 const server = app.listen(port, "0.0.0.0", () => {
-    console.log("[api-gateway] HTTP listening on port " + port);
+    console.log(
+        "[api-gateway] HTTP listening on port " + port
+    );
 });
 
-server.on("error", (error) => {
-    console.error("[api-gateway] Startup failed:", error.code);
+server.on("error", error => {
+    console.error(
+        "[api-gateway] Startup failed:",
+        error.code
+    );
+
     process.exit(1);
 });
 
 let stopping = false;
+
+function closeClients() {
+    closeAuthHealthClient();
+    closeAuthClient();
+    closeCustomerClients();
+    closeRedis();
+}
 
 function shutdown() {
     if (stopping) return;
@@ -49,14 +98,12 @@ function shutdown() {
 
     const timer = setTimeout(() => {
         server.closeAllConnections();
-        closeAuthHealthClient();
-        closeAuthClient();
-        closeRedis();
+        closeClients();
         process.exit(1);
     }, 8000);
 
     server.close(() => {
-        closeAuthHealthClient();
+        closeClients();
         clearTimeout(timer);
     });
 }

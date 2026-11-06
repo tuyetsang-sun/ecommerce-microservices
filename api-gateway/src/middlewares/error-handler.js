@@ -10,12 +10,12 @@ class HttpError extends Error {
 
 const grpcErrors = new Map([
     [grpc.status.INVALID_ARGUMENT, [400, "Invalid request"]],
-    [grpc.status.ALREADY_EXISTS, [409, "Username or email already exists"]],
+    [grpc.status.ALREADY_EXISTS, [409, "Resource already exists"]],
     [grpc.status.UNAUTHENTICATED, [401, "Authentication failed"]],
     [grpc.status.PERMISSION_DENIED, [403, "Forbidden"]],
     [grpc.status.NOT_FOUND, [404, "Resource not found"]],
-    [grpc.status.UNAVAILABLE, [503, "Authentication service unavailable"]],
-    [grpc.status.DEADLINE_EXCEEDED, [504, "Authentication service timed out"]]
+    [grpc.status.UNAVAILABLE, [503, "Upstream service unavailable"]],
+    [grpc.status.DEADLINE_EXCEEDED, [504, "Upstream service timed out"]]
 ]);
 
 function errorHandler(error, req, res, next) {
@@ -62,7 +62,14 @@ function errorHandler(error, req, res, next) {
             code: error.code || error.type || "INTERNAL"
         }));
     }
+    res.set("Cache-Control", "no-store");
 
+    if (statusCode === 401 && !res.get("WWW-Authenticate")) {
+        res.set(
+            "WWW-Authenticate",
+            'Bearer realm="ecommerce"'
+        );
+    }
     res.status(statusCode).json({
         message,
         requestId: req.requestId
