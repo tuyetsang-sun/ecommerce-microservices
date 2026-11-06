@@ -3,7 +3,7 @@ const express = require("express");
 const { authRouter } = require("./routes/auth");
 const { healthRouter } = require("./routes/health");
 const { createCustomerRouter } = require("./routes/customers");
-
+const { createMembershipRouter } = require("./routes/memberships");
 const {
     errorHandler
 } = require("./middlewares/error-handler");
@@ -52,7 +52,16 @@ app.use(
         callCustomer
     })
 );
-
+app.use(
+    "/api/memberships",
+    createMembershipRouter({
+        verifyToken: accessToken =>
+            callAuth("verifyToken", {
+                access_token: accessToken
+            }),
+        callCustomer
+    })
+);
 app.use((req, res) => {
     res.status(404).json({
         message: "Route not found",
