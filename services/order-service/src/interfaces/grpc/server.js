@@ -1,0 +1,86 @@
+const { pool } = require("../../infrastructure/db");
+const { grpc, ecommerce } = require("../../infrastructure/proto");
+
+const port = Number(process.env.GRPC_PORT || 50054);
+
+if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error("Invalid GRPC_PORT");
+}
+
+const server = new grpc.Server();
+let stopping = false;
+
+server.addService(ecommerce.common.HealthService.service, {
+    check: async(call, callback) => {
+        if (stopping) {
+            return callback({
+                code: grpc.status.UNAVAILABLE,
+                details: "Order service is stopping"
+            });
+        }
+
+        try {
+            const result = await pool.query("SELECT 1 AS ok");
+
+            if (!result.rows[0] || result.rows[0].ok !== 1) {
+                throw new Error("Unexpected database response");
+            }
+        } catch (error) {
+            console.error(JSON.stringify({
+                event: "order_health_failed",
+                code: error.code || "DATABASE_ERROR"
+            }));
+
+            return callback({
+                code: grpc.status.UNAVAILABLE,
+                details: "Order database unavailable"
+            });
+        }
+
+        callback(null, {
+            service: "order-service",
+            status: "UP"
+        });
+    }
+});
+
+function shutdown(exitCode = 0) {
+    if (stopping) return;
+    stopping = true;
+
+    const timer = setTimeout(() => {
+        server.forceShutdown();
+        process.exit(1);
+    }, 8000);
+
+    server.tryShutdown(() => {
+        pool.end()
+            .then(() => {
+                clearTimeout(timer);
+                process.exit(exitCode);
+            })
+            .catch(() => process.exit(1));
+    });
+}
+
+process.once("SIGTERM", () => shutdown());
+process.once("SIGINT", () => shutdown());
+
+server.bindAsync(
+    "0.0.0.0:" + port,
+    grpc.ServerCredentials.createInsecure(),
+    error => {
+        if (error) {
+            console.error(
+                "[order-service] Failed to bind gRPC server"
+            );
+
+            shutdown(1);
+            return;
+        }
+
+        console.log(
+            "[order-service] gRPC listening on port " + port
+        );
+    }
+);

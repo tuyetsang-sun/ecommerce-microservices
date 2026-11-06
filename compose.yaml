@@ -293,6 +293,32 @@ services:
       timeout: 8s
       retries: 3
       start_period: 20s
+  order-service:
+    build:
+      context: .
+      dockerfile: services/order-service/Dockerfile
+
+    restart: unless-stopped
+
+    environment:
+      NODE_ENV: production
+      GRPC_PORT: "50054"
+      PGHOST: order-db
+      PGPORT: "5432"
+      PGDATABASE: ${ORDER_DB_NAME:?Missing ORDER_DB_NAME}
+      PGUSER: ${ORDER_DB_USER:?Missing ORDER_DB_USER}
+      PGPASSWORD: ${ORDER_DB_PASSWORD:?Missing ORDER_DB_PASSWORD}
+
+    depends_on:
+      order-db:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "node", "scripts/healthcheck.cjs"]
+      interval: 10s
+      timeout: 8s
+      retries: 5
+      start_period: 20s
 
 volumes:
   auth_data:
