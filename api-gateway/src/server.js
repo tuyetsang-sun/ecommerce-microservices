@@ -1,6 +1,8 @@
 const express = require("express");
 const { createProductRouter } = require("./routes/products");
-
+const {
+    createProductCache
+} = require("./clients/product-cache");
 const {
     callProduct,
     closeProductClients
@@ -32,6 +34,7 @@ const {
 } = require("./clients/customer");
 
 const {
+    executeRedis,
     connectRedis,
     closeRedis
 } = require("./clients/redis");
@@ -74,7 +77,11 @@ app.use(
             callAuth("verifyToken", {
                 access_token: accessToken
             }),
-        callProduct
+        callProduct,
+        productCache: createProductCache({
+            executeRedis,
+            ttlSeconds: 30
+        })
     })
 );
 app.use((req, res) => {

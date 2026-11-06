@@ -147,70 +147,80 @@ function productInput(body, creating) {
     return input;
 }
 
-function createProductRouter({ verifyToken, callProduct }) {
+function createProductRouter({
+    verifyToken,
+    callProduct,
+    productCache
+}) {
     const router = express.Router();
 
     router.use(createAuthenticate(verifyToken));
 
+    // GET danh sách sản phẩm.
     router.get("/", async(req, res) => {
-        const result = await callProduct(
-            "listProducts", {},
-            req.accessToken
-        );
-
-        if (!result ||
-            typeof result !== "object" ||
-            Array.isArray(result)
-        ) {
-            throw new HttpError(
-                502,
-                "Invalid response from product service"
+        const cached = await productCache.read("list", async() => {
+            const result = await callProduct(
+                "listProducts", {},
+                req.accessToken
             );
-        }
 
-        // Protobuf có thể bỏ trường items khi danh sách rỗng.
-        const items = result.items === undefined ? [] : result.items;
+            if (!result ||
+                typeof result !== "object" ||
+                Array.isArray(result)
+            ) {
+                throw new HttpError(
+                    502,
+                    "Invalid response from product service"
+                );
+            }
 
-        if (!Array.isArray(items)) {
-            throw new HttpError(
-                502,
-                "Invalid response from product service"
-            );
-        }
+            const items = result.items === undefined ?
+                [] :
+                result.items;
 
-        res.json(items.map(productResponse));
+            if (!Array.isArray(items)) {
+                throw new HttpError(
+                    502,
+                    "Invalid response from product service"
+                );
+            }
+
+            return items.map(productResponse);
+        });
+
+        res.set("X-Cache", cached.status);
+        res.json(cached.value);
     });
 
+    // GET chi tiết sản phẩm.
     router.get("/:pid", async(req, res) => {
-        const value = req.params.pid;
+        const pid = readPid(req.params.pid);
 
-        if (!/^[1-9][0-9]{0,9}$/.test(value) ||
-            !isInt32(Number(value), 1)
-        ) {
-            throw new HttpError(
-                400,
-                "pid must be a positive int32"
-            );
-        }
+        const cached = await productCache.read(
+            "detail:" + pid,
+            async() => {
+                const result = await callProduct(
+                    "getProduct", { pid },
+                    req.accessToken
+                );
 
-        const pid = Number(value);
+                const product = productResponse(result);
 
-        const result = await callProduct(
-            "getProduct", { pid },
-            req.accessToken
+                if (product.pid !== pid) {
+                    throw new HttpError(
+                        502,
+                        "Invalid response from product service"
+                    );
+                }
+
+                return product;
+            }
         );
 
-        const product = productResponse(result);
-
-        if (product.pid !== pid) {
-            throw new HttpError(
-                502,
-                "Invalid response from product service"
-            );
-        }
-
-        res.json(product);
+        res.set("X-Cache", cached.status);
+        res.json(cached.value);
     });
+
     const adminOnly = requireRoles("admin");
 
     const parseJson = express.json({
@@ -218,6 +228,7 @@ function createProductRouter({ verifyToken, callProduct }) {
         strict: true
     });
 
+    // POST tạo sản phẩm.
     router.post(
         "/",
         adminOnly,
@@ -226,10 +237,12 @@ function createProductRouter({ verifyToken, callProduct }) {
         async(req, res) => {
             const input = productInput(req.body, true);
 
-            const result = await callProduct(
-                "createProduct",
-                input,
-                req.accessToken
+            const result = await productCache.mutate(() =>
+                callProduct(
+                    "createProduct",
+                    input,
+                    req.accessToken
+                )
             );
 
             const product = productResponse(result);
@@ -239,6 +252,7 @@ function createProductRouter({ verifyToken, callProduct }) {
         }
     );
 
+    // PUT cập nhật sản phẩm.
     router.put(
         "/:pid",
         adminOnly,
@@ -252,10 +266,12 @@ function createProductRouter({ verifyToken, callProduct }) {
                 ...productInput(req.body, false)
             };
 
-            const result = await callProduct(
-                "updateProduct",
-                input,
-                req.accessToken
+            const result = await productCache.mutate(() =>
+                callProduct(
+                    "updateProduct",
+                    input,
+                    req.accessToken
+                )
             );
 
             const product = productResponse(result);
@@ -271,15 +287,18 @@ function createProductRouter({ verifyToken, callProduct }) {
         }
     );
 
+    // DELETE xóa sản phẩm.
     router.delete(
         "/:pid",
         adminOnly,
         async(req, res) => {
             const pid = readPid(req.params.pid);
 
-            const result = await callProduct(
-                "deleteProduct", { pid },
-                req.accessToken
+            const result = await productCache.mutate(() =>
+                callProduct(
+                    "deleteProduct", { pid },
+                    req.accessToken
+                )
             );
 
             if (!result ||
@@ -297,6 +316,7 @@ function createProductRouter({ verifyToken, callProduct }) {
             });
         }
     );
+
     return router;
 }
 
