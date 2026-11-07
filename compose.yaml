@@ -48,14 +48,21 @@ services:
       start_period: 20s
 
   product-db:
-    image: mongo:7.0
+    build:
+      context: .
+      dockerfile: infra/product-mongo/Dockerfile
+
     restart: unless-stopped
+
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${PRODUCT_DB_USER:?Missing PRODUCT_DB_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${PRODUCT_DB_PASSWORD:?Missing PRODUCT_DB_PASSWORD}
       MONGO_INITDB_DATABASE: ${PRODUCT_DB_NAME:?Missing PRODUCT_DB_NAME}
+
     volumes:
       - product_data:/data/db
+      - product_keyfile:/etc/mongo-keyfile
+
     healthcheck:
       test:
         - CMD-SHELL
@@ -279,6 +286,7 @@ services:
       MONGO_USERNAME: ${PRODUCT_DB_USER:?Missing PRODUCT_DB_USER}
       MONGO_PASSWORD: ${PRODUCT_DB_PASSWORD:?Missing PRODUCT_DB_PASSWORD}
       MONGO_AUTH_SOURCE: admin
+      MONGO_REPLICA_SET: product-rs
       AUTH_GRPC_ADDRESS: auth-service:50051
 
     depends_on:
@@ -325,6 +333,7 @@ volumes:
   customer_data:
   order_data:
   product_data:
+  product_keyfile:
   shipment_data:
   redis_data:
   kafka_data:

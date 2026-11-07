@@ -20,6 +20,7 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) {
 
 const client = new MongoClient(
     "mongodb://" + host + ":" + port, {
+        replicaSet: process.env.MONGO_REPLICA_SET || undefined,
         auth: {
             username: required("MONGO_USERNAME"),
             password: required("MONGO_PASSWORD")
