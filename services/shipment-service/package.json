@@ -1,0 +1,19 @@
+{
+    "name": "shipment-service",
+    "version": "1.0.0",
+    "private": true,
+    "type": "commonjs",
+    "scripts": {
+        "start": "node src/interfaces/grpc/server.js",
+        "health": "node scripts/healthcheck.cjs"
+    },
+    "engines": {
+        "node": ">=24 <25"
+    },
+    "dependencies": {
+        "@grpc/grpc-js": "1.14.7",
+        "@grpc/proto-loader": "0.8.1",
+        "mongodb": "6.21.0",
+        "kafkajs": "2.2.4"
+    }
+}

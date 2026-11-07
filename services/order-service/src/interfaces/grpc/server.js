@@ -1,4 +1,7 @@
 const {
+    createOutboxPublisher
+} = require("../../infrastructure/outbox-publisher");
+const {
     createServiceClients
 } = require("../../infrastructure/service-clients");
 
@@ -29,6 +32,8 @@ server.addService(
 );
 
 const stopRecovery = app.startRecovery();
+const outbox = createOutboxPublisher({ pool });
+outbox.start();
 server.addService(ecommerce.common.HealthService.service, {
     check: async(call, callback) => {
         if (stopping) {
@@ -84,7 +89,8 @@ function shutdown(exitCode = 0) {
 
     server.tryShutdown(() => {
         remote.close();
-        pool.end()
+        outbox.stop()
+            .then(() => pool.end())
             .then(() => {
                 clearTimeout(timer);
                 process.exit(exitCode);

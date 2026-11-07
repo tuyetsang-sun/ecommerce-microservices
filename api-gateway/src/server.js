@@ -1,5 +1,7 @@
 const { createOrderRouter } = require("./routes/orders");
-
+const {
+    closeShipmentHealthClient
+} = require("./clients/shipment-health");
 const {
     callOrder,
     closeOrderClients
@@ -141,6 +143,7 @@ function closeClients() {
     closeProductClients();
     closeRedis();
     closeOrderClients();
+    closeShipmentHealthClient();
 }
 
 function shutdown() {

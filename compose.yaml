@@ -192,6 +192,7 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?Missing REDIS_PASSWORD}
       PRODUCT_GRPC_ADDRESS: product-service:50053
       ORDER_GRPC_ADDRESS: order-service:50054
+      SHIPMENT_GRPC_ADDRESS: shipment-service:50055
 
     depends_on:
       auth-service:
@@ -203,6 +204,8 @@ services:
       product-service:
         condition: service_healthy
       order-service:
+        condition: service_healthy
+      shipment-service:
         condition: service_healthy
 
     healthcheck:
@@ -324,9 +327,12 @@ services:
       CUSTOMER_GRPC_ADDRESS: customer-service:50052
       PRODUCT_GRPC_ADDRESS: product-service:50053
       STOCK_SERVICE_TOKEN: ${STOCK_SERVICE_TOKEN:?Missing STOCK_SERVICE_TOKEN}
+      KAFKA_BROKERS: kafka:9092
 
     depends_on:
       order-db:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
 
     healthcheck:
@@ -335,6 +341,38 @@ services:
       timeout: 8s
       retries: 5
       start_period: 20s
+  shipment-service:
+    build:
+      context: .
+      dockerfile: services/shipment-service/Dockerfile
+
+    restart: unless-stopped
+    stop_grace_period: 20s
+
+    environment:
+      NODE_ENV: production
+      GRPC_PORT: "50055"
+      MONGO_HOST: shipment-db
+      MONGO_PORT: "27017"
+      MONGO_DATABASE: ${SHIPMENT_DB_NAME:?Missing SHIPMENT_DB_NAME}
+      MONGO_USERNAME: ${SHIPMENT_DB_USER:?Missing SHIPMENT_DB_USER}
+      MONGO_PASSWORD: ${SHIPMENT_DB_PASSWORD:?Missing SHIPMENT_DB_PASSWORD}
+      MONGO_AUTH_SOURCE: admin
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_GROUP_ID: shipment-service-v1
+
+    depends_on:
+      shipment-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "node", "scripts/healthcheck.cjs"]
+      interval: 10s
+      timeout: 8s
+      retries: 12
+      start_period: 30s
 
 volumes:
   auth_data:
