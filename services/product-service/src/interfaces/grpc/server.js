@@ -1,3 +1,10 @@
+const {
+    createStockRepository
+} = require("../../infrastructure/stock-repository");
+
+const {
+    createStockHandlers
+} = require("./stock-handlers");
 const { client, db } = require("../../infrastructure/db");
 const { grpc, ecommerce } = require("../../infrastructure/proto");
 const { createAuthClient } = require("../../infrastructure/auth-client");
@@ -21,11 +28,17 @@ const app = createProductUseCases({
 });
 
 server.addService(
-    ecommerce.product.ProductService.service,
-    createProductHandlers({
-        app,
-        verifyToken: authClient.verifyToken
-    })
+    ecommerce.product.ProductService.service, {
+        ...createProductHandlers({
+            app,
+            verifyToken: authClient.verifyToken
+        }),
+
+        ...createStockHandlers({
+            stock: createStockRepository({ client, db }),
+            serviceToken: process.env.STOCK_SERVICE_TOKEN
+        })
+    }
 );
 server.addService(ecommerce.common.HealthService.service, {
     check: async(call, callback) => {

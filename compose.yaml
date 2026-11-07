@@ -288,6 +288,7 @@ services:
       MONGO_AUTH_SOURCE: admin
       MONGO_REPLICA_SET: product-rs
       AUTH_GRPC_ADDRESS: auth-service:50051
+      STOCK_SERVICE_TOKEN: ${STOCK_SERVICE_TOKEN:?Missing STOCK_SERVICE_TOKEN}
 
     depends_on:
       product-db:

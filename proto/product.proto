@@ -12,6 +12,7 @@ service ProductService {
   rpc DeleteProduct (ProductIdRequest) returns (ecommerce.common.OperationResponse);
   rpc ReserveStock (ReserveStockRequest) returns (ReserveStockResponse);
   rpc ReleaseStock (ReleaseStockRequest) returns (ecommerce.common.OperationResponse);
+  rpc ConfirmStock (ConfirmStockRequest) returns (ecommerce.common.OperationResponse);
 }
 
 message ProductIdRequest {
@@ -64,5 +65,8 @@ message ReserveStockResponse {
 }
 
 message ReleaseStockRequest {
+  string reservation_id = 1;
+}
+message ConfirmStockRequest {
   string reservation_id = 1;
 }
