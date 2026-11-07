@@ -15,6 +15,7 @@ const grpcErrors = new Map([
     [grpc.status.PERMISSION_DENIED, [403, "Forbidden"]],
     [grpc.status.NOT_FOUND, [404, "Resource not found"]],
     [grpc.status.UNAVAILABLE, [503, "Upstream service unavailable"]],
+    [grpc.status.FAILED_PRECONDITION, [409, "Operation conflicts with current resource state"]],
     [grpc.status.DEADLINE_EXCEEDED, [504, "Upstream service timed out"]]
 ]);
 

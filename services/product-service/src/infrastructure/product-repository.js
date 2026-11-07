@@ -110,6 +110,7 @@ function createProductRepository(db) {
         const row = {
             pid: rules.integer(counter.seq, 1, "pid"),
             ...data,
+            reservedQuantity: 0,
             createdAt: now,
             updatedAt: now,
             deletedAt: null
@@ -120,20 +121,58 @@ function createProductRepository(db) {
         return dto(row);
     }
 
+    function stockUnlocked(pid) {
+        return {
+            pid,
+            deletedAt: null,
+            $expr: {
+                $eq: [
+                    { $ifNull: ["$reservedQuantity", 0] },
+                    0
+                ]
+            }
+        };
+    }
+
+    async function rejectLockedProduct(pid) {
+        const exists = await products.findOne({
+            pid,
+            deletedAt: null
+        });
+
+        if (exists) {
+            rules.fail(
+                "STOCK_BUSY",
+                "Product stock is currently reserved"
+            );
+        }
+    }
+
     async function update(pid, input) {
         rules.integer(pid, 1, "pid");
 
         const patch = storedInput(input, false);
+        const changesQuantity = Object.hasOwn(patch, "quantity");
 
-        const row = await products.findOneAndUpdate({ pid, deletedAt: null }, {
-            $set: {
-                ...patch,
-                updatedAt: new Date()
+        const filter = changesQuantity ?
+            stockUnlocked(pid) :
+            { pid, deletedAt: null };
+
+        const row = await products.findOneAndUpdate(
+            filter, {
+                $set: {
+                    ...patch,
+                    updatedAt: new Date()
+                }
+            }, {
+                returnDocument: "after",
+                includeResultMetadata: false
             }
-        }, {
-            returnDocument: "after",
-            includeResultMetadata: false
-        });
+        );
+
+        if (!row && changesQuantity) {
+            await rejectLockedProduct(pid);
+        }
 
         return dto(row);
     }
@@ -143,12 +182,18 @@ function createProductRepository(db) {
 
         const now = new Date();
 
-        const result = await products.updateOne({ pid, deletedAt: null }, {
-            $set: {
-                deletedAt: now,
-                updatedAt: now
+        const result = await products.updateOne(
+            stockUnlocked(pid), {
+                $set: {
+                    deletedAt: now,
+                    updatedAt: now
+                }
             }
-        });
+        );
+
+        if (result.modifiedCount !== 1) {
+            await rejectLockedProduct(pid);
+        }
 
         return result.modifiedCount === 1;
     }

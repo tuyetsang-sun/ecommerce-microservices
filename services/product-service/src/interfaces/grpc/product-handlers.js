@@ -2,6 +2,7 @@ const { grpc } = require("../../infrastructure/proto");
 const { ProductError } = require("../../domain/product-error");
 
 const codes = {
+    STOCK_BUSY: grpc.status.FAILED_PRECONDITION,
     VALIDATION_ERROR: grpc.status.INVALID_ARGUMENT,
     NOT_FOUND: grpc.status.NOT_FOUND,
     FORBIDDEN: grpc.status.PERMISSION_DENIED,
@@ -118,8 +119,7 @@ function createProductHandlers({ app, verifyToken }) {
                     );
                 }
 
-                result = operation === "listProducts" ?
-                    { items: await app.listProducts(actor) } :
+                result = operation === "listProducts" ? { items: await app.listProducts(actor) } :
                     await app[operation](call.request, actor);
             } catch (error) {
                 callback(toGrpcError(error, operation));

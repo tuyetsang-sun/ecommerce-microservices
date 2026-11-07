@@ -1,6 +1,7 @@
 const rules = require("../domain/product-rules");
 const {
-    normalizeReserveStock
+    normalizeReserveStock,
+    normalizeReleaseStock
 } = require("../domain/stock-rules");
 
 async function initializeStockDatabase(db) {
@@ -43,7 +44,7 @@ function createStockRepository({ client, db }) {
                                 );
                             }
 
-                            if (previous.state !== "RESERVED") {
+                            if (!["RESERVED", "CONFIRMED"].includes(previous.state)) {
                                 rules.fail(
                                     "RESERVATION_CONFLICT",
                                     "Reservation is no longer active"
@@ -151,7 +152,125 @@ function createStockRepository({ client, db }) {
         }
     }
 
-    return { reserve };
+    async function finish(input, target) {
+        const request = normalizeReleaseStock(input);
+        const session = client.startSession();
+
+        const result = {
+            message: target === "RELEASED" ?
+                "Stock released successfully" :
+                "Stock confirmed successfully"
+        };
+
+        try {
+            for (let attempt = 0; attempt < 3; attempt += 1) {
+                try {
+                    return await session.withTransaction(async() => {
+                        const row = await reservations.findOne({ _id: request.reservation_id }, { session });
+
+                        if (!row) {
+                            if (target === "CONFIRMED") {
+                                rules.fail(
+                                    "NOT_FOUND",
+                                    "Reservation not found"
+                                );
+                            }
+
+                            // Ghi nhận hủy trước để chặn yêu cầu
+                            // giữ kho đến muộn.
+                            await reservations.insertOne({
+                                _id: request.reservation_id,
+                                request_hash: null,
+                                state: "RELEASED",
+                                items: [],
+                                createdAt: new Date(),
+                                updatedAt: new Date()
+                            }, { session });
+
+                            return result;
+                        }
+
+                        // Gửi lại cùng thao tác: trả thành công,
+                        // không thay đổi tồn kho thêm.
+                        if (row.state === target) {
+                            return result;
+                        }
+
+                        if (row.state !== "RESERVED") {
+                            rules.fail(
+                                "RESERVATION_CONFLICT",
+                                "Reservation already finalized"
+                            );
+                        }
+
+                        for (const item of row.items) {
+                            const filter = {
+                                pid: item.pid,
+                                deletedAt: null,
+                                reservedQuantity: { $gte: item.qty }
+                            };
+
+                            const change = {
+                                reservedQuantity: -item.qty
+                            };
+
+                            if (target === "RELEASED") {
+                                filter.quantity = {
+                                    $gte: 0,
+                                    $lte: 2147483647 - item.qty
+                                };
+
+                                change.quantity = item.qty;
+                            }
+
+                            const updated = await products.updateOne(
+                                filter, {
+                                    $inc: change,
+                                    $set: {
+                                        updatedAt: new Date()
+                                    }
+                                }, { session }
+                            );
+
+                            if (updated.modifiedCount !== 1) {
+                                rules.fail(
+                                    "STOCK_INCONSISTENT",
+                                    "Reserved stock is inconsistent"
+                                );
+                            }
+                        }
+
+                        await reservations.updateOne({ _id: row._id }, {
+                            $set: {
+                                state: target,
+                                updatedAt: new Date()
+                            }
+                        }, { session });
+
+                        return result;
+                    }, {
+                        readConcern: { level: "snapshot" },
+                        writeConcern: { w: "majority" },
+                        readPreference: "primary",
+                        timeoutMS: 10000,
+                        maxCommitTimeMS: 5000
+                    });
+                } catch (error) {
+                    if (error.code !== 11000 || attempt === 2) {
+                        throw error;
+                    }
+                }
+            }
+        } finally {
+            await session.endSession();
+        }
+    }
+
+    return {
+        reserve,
+        release: input => finish(input, "RELEASED"),
+        confirm: input => finish(input, "CONFIRMED")
+    };
 }
 
 module.exports = {
