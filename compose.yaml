@@ -191,6 +191,7 @@ services:
       REDIS_PORT: "6379"
       REDIS_PASSWORD: ${REDIS_PASSWORD:?Missing REDIS_PASSWORD}
       PRODUCT_GRPC_ADDRESS: product-service:50053
+      ORDER_GRPC_ADDRESS: order-service:50054
 
     depends_on:
       auth-service:
@@ -200,6 +201,8 @@ services:
       customer-service:
         condition: service_healthy
       product-service:
+        condition: service_healthy
+      order-service:
         condition: service_healthy
 
     healthcheck:
@@ -317,6 +320,10 @@ services:
       PGDATABASE: ${ORDER_DB_NAME:?Missing ORDER_DB_NAME}
       PGUSER: ${ORDER_DB_USER:?Missing ORDER_DB_USER}
       PGPASSWORD: ${ORDER_DB_PASSWORD:?Missing ORDER_DB_PASSWORD}
+      AUTH_GRPC_ADDRESS: auth-service:50051
+      CUSTOMER_GRPC_ADDRESS: customer-service:50052
+      PRODUCT_GRPC_ADDRESS: product-service:50053
+      STOCK_SERVICE_TOKEN: ${STOCK_SERVICE_TOKEN:?Missing STOCK_SERVICE_TOKEN}
 
     depends_on:
       order-db:

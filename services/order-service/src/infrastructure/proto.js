@@ -6,7 +6,13 @@ const protoDir = process.env.PROTO_DIR ||
     path.resolve(__dirname, "../../../../proto");
 
 const definition = protoLoader.loadSync(
-    ["common.proto", "order.proto"].map(
+    [
+        "common.proto",
+        "order.proto",
+        "auth.proto",
+        "customer.proto",
+        "product.proto"
+    ].map(
         name => path.join(protoDir, name)
     ), {
         includeDirs: [protoDir],

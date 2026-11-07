@@ -1,3 +1,14 @@
+const {
+    createServiceClients
+} = require("../../infrastructure/service-clients");
+
+const {
+    createOrderUseCases
+} = require("../../application/order-use-cases");
+
+const {
+    createOrderHandlers
+} = require("./order-handlers");
 const { pool } = require("../../infrastructure/db");
 const { grpc, ecommerce } = require("../../infrastructure/proto");
 
@@ -9,7 +20,15 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) {
 
 const server = new grpc.Server();
 let stopping = false;
+const remote = createServiceClients();
+const app = createOrderUseCases({ pool, remote });
 
+server.addService(
+    ecommerce.order.OrderService.service,
+    createOrderHandlers({ app, remote })
+);
+
+const stopRecovery = app.startRecovery();
 server.addService(ecommerce.common.HealthService.service, {
     check: async(call, callback) => {
         if (stopping) {
@@ -20,6 +39,9 @@ server.addService(ecommerce.common.HealthService.service, {
         }
 
         try {
+            await pool.query(
+                "SELECT reservation_id FROM order_requests LIMIT 0"
+            );
             await pool.query(`
                 SELECT o.oid, d.pid, e.event_id
                 FROM public.orders o
@@ -54,13 +76,14 @@ server.addService(ecommerce.common.HealthService.service, {
 function shutdown(exitCode = 0) {
     if (stopping) return;
     stopping = true;
-
+    stopRecovery();
     const timer = setTimeout(() => {
         server.forceShutdown();
         process.exit(1);
     }, 8000);
 
     server.tryShutdown(() => {
+        remote.close();
         pool.end()
             .then(() => {
                 clearTimeout(timer);

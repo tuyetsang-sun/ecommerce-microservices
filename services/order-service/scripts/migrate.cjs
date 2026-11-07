@@ -10,7 +10,8 @@ const client = new Client({
 });
 
 const migrationFiles = [
-    "001_order_schema.sql"
+    "001_order_schema.sql",
+    "002_order_requests.sql"
 ];
 
 async function main() {

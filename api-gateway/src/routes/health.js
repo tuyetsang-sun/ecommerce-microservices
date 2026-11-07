@@ -6,7 +6,7 @@ const {
     checkCustomerHealth
 } = require("../clients/customer");
 const healthRouter = express.Router();
-
+const { checkOrderHealth } = require("../clients/order");
 healthRouter.get("/health/live", (req, res) => {
     res.set("Cache-Control", "no-store");
     res.json({
@@ -22,10 +22,11 @@ healthRouter.get("/health", async(req, res) => {
         checkAuthHealth(),
         checkRedisHealth(),
         checkCustomerHealth(),
-        checkProductHealth()
+        checkProductHealth(),
+        checkOrderHealth()
     ]);
 
-    const names = ["auth-service", "redis", "customer-service", "product-service"];
+    const names = ["auth-service", "redis", "customer-service", "product-service", "order-service"];
     const dependencies = {};
 
     results.forEach((result, index) => {

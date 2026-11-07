@@ -1,3 +1,9 @@
+const { createOrderRouter } = require("./routes/orders");
+
+const {
+    callOrder,
+    closeOrderClients
+} = require("./clients/order");
 const express = require("express");
 const { createProductRouter } = require("./routes/products");
 const {
@@ -40,6 +46,10 @@ const {
 } = require("./clients/redis");
 
 const app = express();
+const productCache = createProductCache({
+    executeRedis,
+    ttlSeconds: 30
+});
 const port = Number(process.env.PORT || 3000);
 
 app.set("trust proxy", false);
@@ -78,10 +88,18 @@ app.use(
                 access_token: accessToken
             }),
         callProduct,
-        productCache: createProductCache({
-            executeRedis,
-            ttlSeconds: 30
-        })
+        productCache
+    })
+);
+app.use(
+    "/api/orders",
+    createOrderRouter({
+        verifyToken: accessToken =>
+            callAuth("verifyToken", {
+                access_token: accessToken
+            }),
+        callOrder,
+        productCache
     })
 );
 app.use((req, res) => {
@@ -122,6 +140,7 @@ function closeClients() {
     closeCustomerClients();
     closeProductClients();
     closeRedis();
+    closeOrderClients();
 }
 
 function shutdown() {

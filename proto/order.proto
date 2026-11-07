@@ -39,6 +39,7 @@ message OrderResponse {
   string total_amount = 6;
   string discount_rate = 7;
   int32 score = 8;
+  string discount_amount = 9;
 }
 
 message OrderListResponse {
