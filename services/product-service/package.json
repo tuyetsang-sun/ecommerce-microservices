@@ -6,7 +6,7 @@
     "scripts": {
         "start": "node src/interfaces/grpc/server.js",
         "health": "node scripts/healthcheck.cjs",
-        "test": "node --test tests/product-use-cases.test.cjs"
+        "test": "node --test tests/product-use-cases.test.cjs tests/stock-rules.test.cjs"
     },
     "engines": {
         "node": ">=24 <25"
