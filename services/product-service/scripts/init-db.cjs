@@ -4,9 +4,14 @@ const {
     initializeProductDatabase
 } = require("../src/infrastructure/product-repository");
 
+const {
+    initializeStockDatabase
+} = require("../src/infrastructure/stock-repository");
+
 async function main() {
     try {
         await initializeProductDatabase(db);
+        await initializeStockDatabase(db);
 
         console.log("PRODUCT DATABASE INIT PASSED");
     } finally {
